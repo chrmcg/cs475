@@ -30,18 +30,33 @@ class FeatureSelector:
         if len(argv) != 2:
             print 'Usage: ./feature_select.py path_to_pkl_dir'
             exit()
-        path = argv[1];
-        if not os.path.isdir(path):
+        self.path = argv[1];
+        if not os.path.isdir(self.path):
             print 'Directory not found.'
             exit()
-        filenames = os.listdir(path)
+        filenames = os.listdir(self.path)
         filenames = [i for i in filenames if i[-4:] == '.pkl']
         if len(filenames) == 0:
             print 'No PKL files found in directory.';
             exit()
 
-        print filenames
 
+        print "\nAvailable features:"
+        features = {}
+        for i in range(0, len(filenames)):
+            fn = filenames[i]
+            features[i] = fn
+            print str(i) + " " + fn[:fn.index('.pkl')]
+        inp = raw_input("Choose feature subset (enter a list of numbers separated by spaces)\n:")
+        selected = [int(i) for i in inp.split(" ") if len(i)>0]
+        selected = [i for i in selected if 0 <= i and i < len(filenames)]
+        selected = list(set(selected)) #remove duplicates
+
+        selected_filenames = [filenames[i] for i in selected]
+
+        self.classify(selected_filenames, [])
+
+    def classify(self, filenames, classifiers):
         self.train = {}
         self.train['target'] = []
         self.train['data'] = []
@@ -49,9 +64,8 @@ class FeatureSelector:
         self.dev['target'] = []
         self.dev['data'] = []
 
-        # TODO: interactively choose a subset of these filenames
         for fn in filenames:
-            f = open(os.path.join(path, fn), 'rb')
+            f = open(os.path.join(self.path, fn), 'rb')
             pkl_dict = pickle.load(f)
             f.close()
 
@@ -90,6 +104,7 @@ class FeatureSelector:
 
 
         # TODO: choose classifier(s) interactively
+        # for c in classifiers:
         lin_clf = svm.LinearSVC()
         lin_clf.fit(np.array(self.train['data']), np.array(self.train['target']))
         svm_predictions = lin_clf.predict(np.array(self.dev['data']))

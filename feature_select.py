@@ -103,7 +103,6 @@ class FeatureSelector:
                         print "Error: labels do not agree"
                         exit()
 
-        print len(self.train['data'][0])
         # TODO: choose classifier(s) interactively
         # for c in classifiers:
         lin_clf = svm.LinearSVC()
@@ -122,35 +121,25 @@ class FeatureSelector:
         knn.fit(np.array(self.train['data']), np.array(self.train['target']))
         knn_predictions = knn.predict(np.array(self.dev['data']))
 
+        # Below we re-run all of the above classifications using cross-validated data
         X = np.concatenate([self.train['data'], self.dev['data']])
         Y = np.concatenate([self.train['target'], self.dev['target']])
         X_train, X_dev, Y_train, Y_dev = cross_validation.train_test_split(X, Y, test_size=0.33, random_state=10)
+
         sv = svm.LinearSVC()
         sv.fit(X_train, Y_train)
         sv_predictions = sv.predict(X_dev)
 
-        kf = cross_validation.KFold(len(Y), n_folds=10)
-        for train_index, dev_index in kf:
-            X_train2, X_dev2 = X[train_index], X[dev_index]
-            Y_train2, Y_dev2 = Y[train_index], Y[dev_index]
+        log_reg_cross_valid = linear_model.LogisticRegression(C=1e5)
+        log_reg_cross_valid.fit(X_train, Y_train)
+        log_predictions_cross_valid = log_reg_cross_valid.predict(X_dev)
 
-        sv2 = svm.LinearSVC()
-        sv2.fit(X_train2, Y_train2)
-        sv_predictions2 = sv2.predict(X_dev2)
-
-        loo = cross_validation.LeaveOneOut(len(Y))
-        for train_index, dev_index in loo:
-            X_train3, X_dev3 = X[train_index], X[dev_index]
-            Y_train3, Y_dev3 = Y[train_index], Y[dev_index]
-
-        sv3 = svm.LinearSVC()
-        sv3.fit(X_train3, Y_train3)
-        sv_predictions3 = sv3.predict(X_dev3)
+        knn_cross_valid = KNeighborsClassifier()
+        knn_cross_valid.fit(X_train, Y_train)
+        knn_predictions_cross_valid = knn_cross_valid.predict(X_dev)
 
         actual = np.array(self.dev['target'])
         actual_cross_valid = np.array(Y_dev)
-        actual_cross_valid2 = np.array(Y_dev2)
-        actual_cross_valid3 = np.array(Y_dev3)
 
         # Metrics section
         labelDictionary = {
@@ -163,6 +152,18 @@ class FeatureSelector:
             "solohorns": 7,
             "solostrings": 8,
             "strings": 9
+        }
+
+        labelDictionary2 = {
+          "acousticbass": 1,
+          "acousticguitar": 2,
+          "acousticpiano": 3,
+          "electricbass": 1,
+          "electricguitar": 2,
+          "electricpiano": 3,
+          "solohorns": 4,
+          "solostrings": 5,
+          "strings": 5
         }
 
         print("SVM 1 in K:\n%s\n" % (metrics.classification_report(actual, svm_predictions)))
@@ -190,14 +191,14 @@ class FeatureSelector:
         print("Actual:\n" + str(actual_cross_valid))
         print(labelDictionary)
 
-        print("SVM 1 in K 10-fold Cross-Validated:\n%s\n" % (metrics.classification_report(actual_cross_valid2, sv_predictions2)))
-        print("Predictions:\n" + str(sv_predictions2))
-        print("Actual:\n" + str(actual_cross_valid2))
+        print("Logistic Regression Cross-Validated:\n%s\n" % (metrics.classification_report(actual_cross_valid, log_predictions_cross_valid)))
+        print("Predictions:\n" + str(log_predictions_cross_valid))
+        print("Actual:\n" + str(actual_cross_valid))
         print(labelDictionary)
 
-        print("SVM 1 in K Leave One Out Cross-Validated:\n%s\n" % (metrics.classification_report(actual_cross_valid3, sv_predictions3)))
-        print("Predictions:\n" + str(sv_predictions3))
-        print("Actual:\n" + str(actual_cross_valid3))
+        print("kNN Cross-Validated:\n%s\n" % (metrics.classification_report(actual_cross_valid, knn_predictions_cross_valid)))
+        print("Predictions:\n" + str(knn_predictions_cross_valid))
+        print("Actual:\n" + str(actual_cross_valid))
         print(labelDictionary)
 
         #print "SVM:"

@@ -61,6 +61,19 @@ class Data:
       "strings": 9
     }
 
+
+    labelDictionary2 = {
+      "acousticbass": 1,
+      "acousticguitar": 2,
+      "acousticpiano": 3,
+      "electricbass": 1,
+      "electricguitar": 2,
+      "electricpiano": 3,
+      "solohorns": 4,
+      "solostrings": 5,
+      "strings": 5
+    }
+
     for instance in self.training_filenames:
       instanceLabel = instance[:instance.index('_')]
       self.train['target'].append(labelDictionary[instanceLabel])
